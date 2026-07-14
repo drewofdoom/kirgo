@@ -2,26 +2,89 @@
 
 set -ouex pipefail
 
+log() { echo "=== $* ==="; }
+RELEASE="$(rpm -E %fedora)"
+
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
-### Install packages
+# enable COPR repos
+log "Enabling COPR repos..."
+COPR_REPOS=(
+  avengemedia/dms
+  rivenirvana/morewaita-icon-theme
+  scottames/ghostty
+  tofik/nwg-shell
+  ulysg/xwayland-satellite
+)
+for repo in "${COPR_REPOS[@]}"; do
+  dnf5 -y copr enable "$repo"
+done
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+# Terra Repo
+log "Adding Terra repo..."
+curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo \
+  -o /etc/yum.repos.d/terra.repo
 
-# this installs a package from fedora repos
-dnf5 install -y tmux
+# Repo priorities (lower = higher priority)
+echo "priority=1" >>/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:ulysg:xwayland-satellite.repo
+echo "priority=1" >>/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:scottames:ghostty.repo
+echo "priority=2" >>/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:avengemedia:danklinux.repo
+dnf5 -y config-manager setopt '*danklinux*.exclude=ghostty*'
+dnf5 -y config-manager setopt 'terra.enabled=1' 'terra*.priority=3' 'terra*.exclude=ghostty matugen*'
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+# Install packages
+PKGS=(
+  # Desktop
+  xdg-desktop-portal-gnome
+  xdg-desktop-portal-gtk
+  xwayland-run
 
-#### Example for enabling a System Unit File
+  # DMS
+  quickshell
+  dankcalendar-git
+  danksearch
+  dgop
+  dms
+  dms-cli
+  dms-greeter
+  niri
 
-systemctl enable podman.socket
+  # Theming
+  matugen
+  nwg-look
+  adw-gtk3-theme
+  morewaita-icon-theme
+
+  # Fonts
+  maple-fonts
+  material-symbols-fonts
+
+  # Terminal
+  ghostty
+  ghostty-terminfo
+  ghostty-shell-integration
+  ghostty-fish-completion
+)
+
+REMOVE_PKGS=(
+  nautilus-gsconnect
+  jetbrains-mono-fonts-all
+  gnome-tweaks
+  libappindicator-gtk3
+  libayatana-appindicator-gtk3
+  opendyslexic-fonts
+  zsh
+)
+
+log "Installing packages..."
+dnf5 install -y --setopt=install_weak_deps=False "${PKGS[@]}"
+
+log "Removing unwanted packages..."
+dnf5 remove -y "${REMOVE_PKGS[@]}"
+
+log "Cleaning up..."
+dnf5 clean all
+
+systemctl disable gdm.service
+systemctl enable greetd.service
