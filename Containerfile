@@ -1,10 +1,13 @@
+# Set variables
+ARG BASE_IMAGE=ghcr.io/ublue-os/bluefin:stable
+
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
 # Base Image
-FROM ghcr.io/ublue-os/bluefin:stable
+FROM ${BASE_IMAGE}
 
 ### MODIFICATIONS
 ## make modifications desired in your image and install packages by modifying the build.sh script

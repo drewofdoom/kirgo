@@ -124,6 +124,10 @@ build $target_image=image_name $tag=default_tag:
     # This actually builds the image!
     PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
+    if [[ -n "${BASE_IMAGE:-}" ]]; then
+      PODMAN_BUILD_ARGS+=("--build-arg" "BASE_IMAGE=${BASE_IMAGE}")
+    fi
+
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 
 # Split the image for smaller updates (New)!

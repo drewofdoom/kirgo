@@ -17,13 +17,21 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ matrix.name }}
   cancel-in-progress: true
 
 jobs:
   build_push:
     name: Build and push image
     runs-on: ubuntu-24.04
+
+    strategy:
+      matrix:
+        include:
+          - name: amd-intel
+            base_image: ghcr.io/ublue-os/bluefin:stable
+          - name: nvidia-open
+            base_image: ghcr.io/ublue-os/bluefin-nvidia-open:stable
 
     permissions:
       contents: read
@@ -48,9 +56,10 @@ jobs:
 
       - name: Image Name
         id: image-name
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
         run: |
-          IMAGE_NAME=$(just image_name)
-
+          IMAGE_NAME="$(just image_name)-${MATRIX_NAME}"
           echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
 
       - name: Default Tag
@@ -69,6 +78,8 @@ jobs:
       # This actually builds the container image
       - name: Build Image
         id: build-image
+        env:
+          BASE_IMAGE: ${{ matrix.base_image }}
         run: |
           sudo -E $(command -v just) build \
             ${IMAGE_NAME} \
