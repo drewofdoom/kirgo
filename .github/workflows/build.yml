@@ -15,11 +15,91 @@ on:
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
+  STORED_DIGEST_PATH: ".base-image-digest"
 
 jobs:
+  # Check for base image updates
+  check_updates:
+    name: Check base image updates
+    runs-on: ubuntu-24.04
+
+    outputs:
+      amd_intel_updated: ${{ steps.check-amd.outputs.updated }}
+      nvidia_updated: ${{ steps.check-nvidia.outputs.updated }}
+      amd_intel_digest: ${{ steps.check-amd.outputs.digest }}
+      nvidia_digest: ${{ steps.check-nvidia.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Get AMD/Intel Base Digest
+        id: check-amd
+        run: |
+          NEW_DIGEST=$(
+            curl -sSL \
+              -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+              -H "Authorization: Bearer $(curl -sSL https://ghcr.io/token?service=ghcr.io&scope=repository:ublue-os/bluefin:pull | jq -r '.token')" \
+              https://ghcr.io/v2/ublue-os/bluefin/manifests/stable \
+              | jq -r '.config.digest'
+          )
+
+          echo "NEW_DIGEST=$NEW_DIGEST"
+          echo "digest=$NEW_DIGEST" >> $GITHUB_OUTPUT
+
+          if [[ -f "${STORED_DIGEST_PATH}" ]]; then
+            OLD_DIGEST=$(grep "amd_intel:" ${STORED_DIGEST_PATH} | cut -d: -f2)
+            if [[ "$NEW_DIGEST" != "$OLD_DIGEST" ]]; then
+              echo "updated=true" >> $GITHUB_OUTPUT
+            else
+              echo "updated=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "updated=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get NVIDIA Base Digest
+        id: check-nvidia
+        run: |
+          NEW_DIGEST=$(
+            curl -sSL \
+              -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+              -H "Authorization: Bearer $(curl -sSL https://ghcr.io/token?service=ghcr.io&scope=repository:ublue-os/bluefin-nvidia-open:pull | jq -r '.token')" \
+              https://ghcr.io/v2/ublue-os/bluefin-nvidia-open/manifests/stable \
+              | jq -r '.config.digest'
+          )
+
+          echo "NEW_DIGEST=$NEW_DIGEST"
+          echo "digest=$NEW_DIGEST" >> $GITHUB_OUTPUT
+
+          if [[ -f "${STORED_DIGEST_PATH}" ]]; then
+            OLD_DIGEST=$(grep "nvidia_open:" ${STORED_DIGEST_PATH} | cut -d: -f2)
+            if [[ "$NEW_DIGEST" != "$OLD_DIGEST" ]]; then
+              echo "updated=true" >> $GITHUB_OUTPUT
+            else
+              echo "updated=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "updated=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save Digests
+        if: success()
+        run: |
+          echo "amd_intel:${{ steps.check-amd.outputs.digest }}" > ${STORED_DIGEST_PATH}
+          echo "nvidia_open:${{ steps.check-nvidia.outputs.digest }}" >> ${STORED_DIGEST_PATH}
+          cat ${STORED_DIGEST_PATH}
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add ${STORED_DIGEST_PATH}
+          git diff --quiet || git commit -m "chore: update base image digests" && git push
+
   build_amd_intel:
     name: Build amd-intel image
     runs-on: ubuntu-24.04
+    needs: check_updates
+
+    if: needs.check_updates.outputs.amd_intel_updated == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-amd-intel
@@ -139,6 +219,9 @@ jobs:
   build_nvidia_open:
     name: Build nvidia-open image
     runs-on: ubuntu-24.04
+    needs: check_updates
+
+    if: needs.check_updates.outputs.nvidia_updated == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-nvidia-open

@@ -59,6 +59,8 @@ PKGS=(
   nwg-look
 
   # Fonts
+  rsms-inter-fonts
+  sorkintype-merriweather-fonts
   maple-fonts
   material-symbols-fonts
 
