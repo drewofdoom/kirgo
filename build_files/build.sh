@@ -55,14 +55,7 @@ PKGS=(
   # Theming
   adw-gtk3-theme
   matugen
-  morewaita-icon-theme
   nwg-look
-
-  # Fonts
-  rsms-inter-fonts
-  sorkintype-merriweather-fonts
-  maple-fonts
-  material-symbols-fonts
 
   # Terminal
   ghostty
