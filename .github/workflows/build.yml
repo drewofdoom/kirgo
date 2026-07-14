@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "05 10 * * *" # 10:05am UTC everyday
+    - cron: "0 8 */3 * *"
   push:
     branches:
       - main
@@ -23,6 +23,9 @@ jobs:
     name: Check base image updates
     runs-on: ubuntu-24.04
 
+    permissions:
+      contents: write
+
     outputs:
       amd_intel_updated: ${{ steps.check-amd.outputs.updated }}
       nvidia_updated: ${{ steps.check-nvidia.outputs.updated }}
@@ -36,6 +39,8 @@ jobs:
       - name: Get AMD/Intel Base Digest
         id: check-amd
         run: |
+          TOKEN=$(curl -sSL "https://ghcr.io/token?service=ghcr.io&scope=repository:ublue-os/bluefin:pull" | jq -r '.token')
+
           NEW_DIGEST=$(
             curl -sSL \
               -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
@@ -61,6 +66,8 @@ jobs:
       - name: Get NVIDIA Base Digest
         id: check-nvidia
         run: |
+          TOKEN=$(curl -sSL "https://ghcr.io/token?service=ghcr.io&scope=repository:ublue-os/bluefin:pull" | jq -r '.token')
+
           NEW_DIGEST=$(
             curl -sSL \
               -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
