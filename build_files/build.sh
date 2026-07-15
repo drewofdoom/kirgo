@@ -65,6 +65,7 @@ declare -a RM_PKGS=(
     "gnome-online-accounts"
     "gnome-online-accounts-libs"
     "gnome-remote-desktop"
+    "ptyxis"
 
     # Extra GNOME Core
     "gdm"
@@ -109,6 +110,30 @@ if [[ ${#RM_PKGS[@]} -gt 0 ]]; then
 else
     log "Nothing to remove"
 fi
+
+# Define what MUST stay
+declare -a KEEP_PACKAGES=(
+    "nautilus"
+    "nautilus-extensions"
+    "shared-mime-info"
+    "desktop-file-utils"
+    "gvfs"
+    "gvfs-client"
+    "gvfs-fuse"
+    "gtk3"
+    "gtk4"
+    "libadwaita"
+    "gsettings-desktop-schemas"
+    "dconf"
+)
+
+# After all removals, verify and reinstall if needed
+for pkg in "${KEEP_PACKAGES[@]}"; do
+    if ! rpm -q --quiet "$pkg"; then
+        log "Reinstalling critical package: $pkg"
+        dnf5 install -y "$pkg"
+    fi
+done
 
 # Extra repos
 log "Enabling COPR repos..."
