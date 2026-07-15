@@ -1,6 +1,6 @@
 # Kirgo
 
-> _"Well, I'll be damned. I've seen a Cadillac..."_ — Malcolm Crowe, _Cadillacs and Dinosaurs_ #1
+> _"I was looking for the Cadillac..."_ — Jack Tenrec, _Cadillacs and Dinosaurs_ 1993 Arcade Game
 
 **Kirgo** is a highly opinionated, streamlined desktop image based on Universal Blue's Bluefin. Named after the iconic comic series and its dinosaur theme, Kirgo takes Bluefin's rock-solid foundation and pares it down to essentials while keeping your GNOME services intact.
 
