@@ -119,6 +119,8 @@ jobs:
 
     env:
       BASE_IMAGE: ghcr.io/ublue-os/bluefin:stable
+      IMAGE_ID: kirgo
+      VARIANT_ID: kirgo
 
     steps:
       - name: Checkout
@@ -241,6 +243,8 @@ jobs:
 
     env:
       BASE_IMAGE: ghcr.io/ublue-os/bluefin-nvidia-open:stable
+      IMAGE_ID: kirgo-nvidia-open
+      VARIANT_ID: kirgo-nvidia-open
 
     steps:
       - name: Checkout
